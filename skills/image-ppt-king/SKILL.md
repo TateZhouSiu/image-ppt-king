@@ -17,6 +17,15 @@ Build a PPTX where visual components are image/shape layers and semantic text is
 - Editable text boxes are text-only by default: no fill, no outline, no patch background.
 - Prefer the Presentations artifact-tool when it is available because it can render previews and layout JSON. If it is not available, use the bundled `pptxgenjs` fallback backend to generate a reproducible editable PPTX.
 
+## Runtime Assumptions
+
+- The bundled `npm run demo` path is deterministic and can run without an AI model once Node dependencies are installed.
+- Production reconstruction needs a Codex-style agent that can inspect images, read/write files, run Python/Node/OCR commands, inspect PPTX artifacts, and review generated previews.
+- Use a strong multimodal reasoning model for real slide reconstruction. The author-known-good profile is macOS, Codex-style local agent, GPT-5.5-class multimodal reasoning, and `xhigh` reasoning for difficult pages.
+- Use `high` reasoning for normal production work; use `xhigh` when available for dense decks, ambiguous OCR, or layout-heavy pages.
+- Smaller models may run the builder but are more likely to misplace text, miss OCR conflicts, or accept weak QA results.
+- For macOS/Windows/Linux setup details, read `references/runtime-and-platform.md` before promising reproducibility to a user.
+
 ## Workflow
 
 1. Inspect the input images and decide scope:

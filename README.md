@@ -31,6 +31,20 @@ flowchart LR
   F --> I["QA report"]
 ```
 
+## Reproducibility Profile
+
+The bundled `npm run demo` path is deterministic and does not require an AI model. Production-quality reconstruction of real decks does require a capable agent runtime because the hard work is visual-layer judgment, text correction, layout anchoring, OCR conflict resolution, and QA review.
+
+Recommended agent runtime:
+
+- Codex-style agent mode with local file read/write and command execution.
+- Multimodal model with image input and strong visual reasoning.
+- Frontier reasoning model, such as GPT-5.5 or an equivalent model, for dense or high-value decks.
+- Reasoning effort: `high` for normal production work; `xhigh` when available for difficult full-deck reconstruction.
+- Long enough context to inspect source images, Image Split manifests, OCR evidence, `text-layer.json`, PPTX XML, previews, and QA reports together.
+
+Known-good author setup: macOS, Codex-style local agent, GPT-5.5-class multimodal reasoning, and `xhigh` reasoning for difficult pages. Smaller or lower-reasoning models can still run the builder, but may need more human correction for text placement, style consistency, and QA decisions.
+
 ## Quick Start
 
 Install Python QA dependencies:
@@ -68,6 +82,16 @@ If the artifact runtime cannot discover itself automatically, set:
 ```bash
 export PRESENTATIONS_ARTIFACT_UTILS=/path/to/artifact_tool_utils.mjs
 ```
+
+## Platform Notes
+
+The repository is authored and validated primarily on macOS. The fallback builder is cross-platform Node.js and the QA script is cross-platform Python, but shell setup differs:
+
+- macOS/Linux/WSL2: use the commands as written with `python -m venv`, `source .venv/bin/activate`, `npm install`, and POSIX line continuations.
+- Windows PowerShell: use `py -m venv .venv`, then `.venv\Scripts\Activate.ps1`, then `pip install -r requirements.txt` and `npm install`.
+- Use Node.js 18+ and Python 3.10+.
+- For best parity with the author's workflow on Windows, use WSL2 when combining this project with Docker OCR or heavier Image Split pipelines.
+- PowerPoint/WPS visual fidelity can differ by OS and font availability. For Chinese decks, install compatible fonts such as `PingFang SC` on macOS or `Microsoft YaHei` on Windows, then inspect representative slides manually.
 
 ## Required Inputs
 
