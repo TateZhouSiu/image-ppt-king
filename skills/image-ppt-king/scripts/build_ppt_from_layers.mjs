@@ -4,6 +4,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 function parseArgs(argv) {
   const args = {};
@@ -35,11 +38,14 @@ function printHelp() {
     [--preview-dir /path/to/preview] \\
     [--layout-dir /path/to/layout] \\
     [--slide-size 960x540] \\
+    [--backend auto|artifact|pptxgenjs] \\
     [--fail-on-text-fill]
 
 Notes:
-  - This adapter currently uses the Codex Presentations artifact runtime.
-  - Set PRESENTATIONS_ARTIFACT_UTILS to artifact_tool_utils.mjs when running outside the bundled Codex environment.
+  - backend=auto tries the Codex Presentations artifact runtime first, then falls back to pptxgenjs.
+  - backend=artifact renders PPTX, preview PNGs, and layout JSON through the Codex Presentations runtime.
+  - backend=pptxgenjs generates an editable PPTX without preview rendering; run npm install in the skill folder first.
+  - Set PRESENTATIONS_ARTIFACT_UTILS to artifact_tool_utils.mjs when using backend=artifact outside the bundled Codex environment.
 `);
 }
 
@@ -134,6 +140,21 @@ async function importUtils() {
   throw new Error("Could not locate Presentations artifact_tool_utils.mjs. Set PRESENTATIONS_ARTIFACT_UTILS.");
 }
 
+function isArtifactRuntimeMissing(error) {
+  return String(error?.message || error || "").includes("Could not locate Presentations artifact_tool_utils.mjs");
+}
+
+function importPptxGen() {
+  try {
+    const mod = require("pptxgenjs");
+    return mod.default || mod;
+  } catch (error) {
+    throw new Error(
+      `Could not load pptxgenjs fallback backend. Run "npm install" in the image-ppt-king skill folder first. Original error: ${error.message}`,
+    );
+  }
+}
+
 async function findPageDir(root, slideNo) {
   const names = [
     `第${pad(slideNo)}页`,
@@ -187,6 +208,27 @@ function assetPosition(asset, size) {
   };
 }
 
+function normalizePptxColor(value, fallback = "333333") {
+  if (!value) return fallback;
+  const text = String(value).trim();
+  if (text.startsWith("#")) return text.slice(1).slice(0, 6) || fallback;
+  return text.slice(0, 6) || fallback;
+}
+
+function pptxScale(size) {
+  const width = 10;
+  return { x: width / size.width, y: (width * size.height / size.width) / size.height, width, height: width * size.height / size.width };
+}
+
+function toPptxPosition(position, scale) {
+  return {
+    x: Number(position.left) * scale.x,
+    y: Number(position.top) * scale.y,
+    w: Number(position.width) * scale.x,
+    h: Number(position.height) * scale.y,
+  };
+}
+
 async function addImageLayer(slide, artifactUtils, filePath, size, name, asset = {}) {
   const image = slide.images.add({
     blob: await artifactUtils.readImageBlob(filePath),
@@ -233,6 +275,39 @@ function addTextBox(slide, item, index, options = {}) {
   return shape;
 }
 
+function addTextBoxPptxGen(slide, item, index, scale, options = {}) {
+  const preserveTextFill = Boolean(options.preserveTextFill);
+  const position = toPptxPosition({
+    left: Number(item.x),
+    top: Number(item.y),
+    width: Math.max(1, Number(item.w)),
+    height: Math.max(1, Number(item.h)),
+  }, scale);
+  const pptxOptions = {
+    ...position,
+    name: item.name || `text-${index}`,
+    margin: 0,
+    fontFace: item.typeface || "PingFang SC",
+    fontSize: Number(item.size ?? 14),
+    color: normalizePptxColor(item.color),
+    bold: Boolean(item.bold),
+    align: item.align || "left",
+    valign: item.valign || "top",
+    fit: item.autoFit === "shrink" ? "shrink" : undefined,
+    rotate: item.rotation !== undefined && item.rotation !== null ? Number(item.rotation) : undefined,
+    breakLine: false,
+  };
+  if (preserveTextFill && visibleStyleValue(item.fill)) {
+    pptxOptions.fill = { color: normalizePptxColor(item.fill, "FFFFFF"), transparency: 0 };
+  }
+  if (preserveTextFill && visibleStyleValue(item.line)) {
+    pptxOptions.line = { color: normalizePptxColor(lineFillValue(item.line, "#000000"), "000000"), width: lineWidthValue(item, true) };
+  } else {
+    pptxOptions.line = { color: "FFFFFF", transparency: 100 };
+  }
+  slide.addText(String(item.text ?? ""), pptxOptions);
+}
+
 async function addVisualLayers(slide, artifactUtils, pageDir, size, slideNo) {
   const manifestPath = path.join(pageDir, "manifest.json");
   const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
@@ -241,6 +316,107 @@ async function addVisualLayers(slide, artifactUtils, pageDir, size, slideNo) {
     await addImageLayer(slide, artifactUtils, path.join(pageDir, asset.file), size, `slide-${pad(slideNo)}-${asset.file}`, asset);
   }
   return assets.length;
+}
+
+async function addVisualLayersPptxGen(slide, pageDir, size, slideNo, scale) {
+  const manifestPath = path.join(pageDir, "manifest.json");
+  const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+  const assets = Array.isArray(manifest.assets) ? manifest.assets : [];
+  for (const asset of assets) {
+    const position = assetPosition(asset, size);
+    slide.addImage({
+      path: path.join(pageDir, asset.file),
+      ...toPptxPosition(position, scale),
+      altText: asset.name || `slide-${pad(slideNo)}-${asset.file}`,
+    });
+  }
+  return assets.length;
+}
+
+async function buildWithPptxGen({
+  layersRoot,
+  out,
+  workspace,
+  previewDir,
+  layoutDir,
+  manifestOut,
+  size,
+  preserveTextFill,
+  textSpec,
+  slideSpecs,
+  textFillViolations,
+  textJson,
+}) {
+  const PptxGenJS = importPptxGen();
+  const pptx = new PptxGenJS();
+  const scale = pptxScale(size);
+  pptx.author = "Image-PPT-King";
+  pptx.subject = "Editable PPTX generated from Image Split visual layers";
+  pptx.title = "Image-PPT-King output";
+  pptx.company = "Image-PPT-King";
+  pptx.lang = "zh-CN";
+  pptx.defineLayout({ name: "IMAGE_PPT_KING_CUSTOM", width: scale.width, height: scale.height });
+  pptx.layout = "IMAGE_PPT_KING_CUSTOM";
+  pptx.theme = {
+    headFontFace: "PingFang SC",
+    bodyFontFace: "PingFang SC",
+    lang: "zh-CN",
+  };
+
+  const records = [];
+  for (const slideSpec of slideSpecs) {
+    const slide = pptx.addSlide();
+    slide.background = { color: normalizePptxColor(textSpec.background, "F7F8F7") };
+    const pageDir = await findPageDir(layersRoot, slideSpec.slide);
+    const visualLayerCount = await addVisualLayersPptxGen(slide, pageDir, size, slideSpec.slide, scale);
+    slideSpec.texts.forEach((textItem, index) => addTextBoxPptxGen(slide, textItem, index + 1, scale, { preserveTextFill }));
+    records.push({
+      slideNumber: slideSpec.slide,
+      pageDir,
+      visualLayerCount,
+      textCount: slideSpec.texts.length,
+    });
+  }
+
+  await fs.mkdir(path.dirname(out), { recursive: true });
+  await pptx.writeFile({ fileName: out });
+  const stat = await fs.stat(out);
+  if (stat.size <= 0) throw new Error(`Empty PPTX exported: ${out}`);
+
+  await fs.mkdir(previewDir, { recursive: true });
+  await fs.mkdir(layoutDir, { recursive: true });
+  for (let i = 0; i < records.length; i += 1) {
+    await fs.writeFile(path.join(layoutDir, `slide-${pad(i + 1)}.layout.json`), `${JSON.stringify({
+      backend: "pptxgenjs",
+      slide: records[i].slideNumber,
+      note: "Layout JSON is a lightweight object summary. Pixel preview rendering requires backend=artifact.",
+      pageDir: records[i].pageDir,
+      visualLayerCount: records[i].visualLayerCount,
+      textCount: records[i].textCount,
+    }, null, 2)}\n`, "utf8");
+  }
+
+  const buildManifest = {
+    output: out,
+    bytes: stat.size,
+    backend: "pptxgenjs",
+    slideCount: records.length,
+    slideSize: size,
+    layersRoot,
+    textJson,
+    workspace,
+    previewDir,
+    layoutDir,
+    previewPaths: [],
+    previewNote: "backend=pptxgenjs does not render preview PNGs. Use backend=artifact in Codex Presentations runtime for previews.",
+    textFillPolicy: preserveTextFill ? "preserve" : "strip",
+    textFillViolationCount: textFillViolations.length,
+    textFillViolations,
+    slides: records,
+  };
+  await fs.mkdir(path.dirname(manifestOut), { recursive: true });
+  await fs.writeFile(manifestOut, `${JSON.stringify(buildManifest, null, 2)}\n`, "utf8");
+  console.log(JSON.stringify(buildManifest, null, 2));
 }
 
 async function main() {
@@ -259,12 +435,10 @@ async function main() {
   const size = slideSize(args["slide-size"]);
   const preserveTextFill = Boolean(args["preserve-text-fill"]);
   const failOnTextFill = Boolean(args["fail-on-text-fill"]);
-
-  const utils = await importUtils();
-  await utils.ensureArtifactToolWorkspace(workspace);
-  const artifact = await utils.importArtifactTool(workspace);
-  const { Presentation, PresentationFile } = artifact;
-  const presentation = Presentation.create({ slideSize: size });
+  const backend = String(args.backend || "auto");
+  if (!["auto", "artifact", "pptxgenjs"].includes(backend)) {
+    throw new Error(`Unsupported --backend ${backend}; expected auto, artifact, or pptxgenjs.`);
+  }
 
   const textSpec = JSON.parse(await fs.readFile(textJson, "utf8"));
   const slideSpecs = slidesFromTextSpec(textSpec);
@@ -272,6 +446,38 @@ async function main() {
   if (failOnTextFill && textFillViolations.length > 0) {
     throw new Error(`Text JSON contains ${textFillViolations.length} text boxes with fill/line. Remove them or build without --fail-on-text-fill.`);
   }
+
+  let utils = null;
+  if (backend !== "pptxgenjs") {
+    try {
+      utils = await importUtils();
+    } catch (error) {
+      if (backend === "artifact" || !isArtifactRuntimeMissing(error)) throw error;
+    }
+  }
+
+  if (!utils) {
+    await buildWithPptxGen({
+      layersRoot,
+      out,
+      workspace,
+      previewDir,
+      layoutDir,
+      manifestOut,
+      size,
+      preserveTextFill,
+      textSpec,
+      slideSpecs,
+      textFillViolations,
+      textJson,
+    });
+    return;
+  }
+
+  await utils.ensureArtifactToolWorkspace(workspace);
+  const artifact = await utils.importArtifactTool(workspace);
+  const { Presentation, PresentationFile } = artifact;
+  const presentation = Presentation.create({ slideSize: size });
   const records = [];
 
   for (const slideSpec of slideSpecs) {
@@ -316,6 +522,7 @@ async function main() {
   const buildManifest = {
     output: out,
     bytes: stat.size,
+    backend: "artifact",
     slideCount: records.length,
     slideSize: size,
     layersRoot,

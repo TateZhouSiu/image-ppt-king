@@ -1,0 +1,91 @@
+{
+  "background": "#F7F8F7",
+  "slides": [
+    {
+      "slide": 1,
+      "texts": [
+        {
+          "name": "title",
+          "styleRole": "title",
+          "text": "Image-PPT-King Demo",
+          "x": 90,
+          "y": 24,
+          "w": 780,
+          "h": 36,
+          "size": 26,
+          "bold": true,
+          "color": "#FFFFFF",
+          "align": "center",
+          "valign": "mid"
+        },
+        {
+          "name": "left_label",
+          "styleRole": "label",
+          "text": "VISUAL",
+          "x": 96,
+          "y": 177,
+          "w": 150,
+          "h": 30,
+          "size": 15,
+          "bold": true,
+          "color": "#FFFFFF",
+          "align": "center",
+          "valign": "mid"
+        },
+        {
+          "name": "left_body",
+          "styleRole": "body",
+          "text": "Atomic assets are separated from semantic text.",
+          "x": 100,
+          "y": 245,
+          "w": 300,
+          "h": 92,
+          "size": 18,
+          "color": "#12324A",
+          "align": "left",
+          "valign": "top"
+        },
+        {
+          "name": "right_label",
+          "styleRole": "label",
+          "text": "PPTX",
+          "x": 551,
+          "y": 177,
+          "w": 150,
+          "h": 30,
+          "size": 15,
+          "bold": true,
+          "color": "#12324A",
+          "align": "center",
+          "valign": "mid"
+        },
+        {
+          "name": "right_body",
+          "styleRole": "body",
+          "text": "Text stays editable and transparent in PowerPoint.",
+          "x": 555,
+          "y": 245,
+          "w": 300,
+          "h": 92,
+          "size": 18,
+          "color": "#12324A",
+          "align": "left",
+          "valign": "top"
+        },
+        {
+          "name": "page_number",
+          "styleRole": "page_number",
+          "text": "01",
+          "x": 840,
+          "y": 502,
+          "w": 50,
+          "h": 24,
+          "size": 12,
+          "color": "#6A7780",
+          "align": "right",
+          "valign": "mid"
+        }
+      ]
+    }
+  ]
+}

@@ -2,14 +2,14 @@
 
 Turn flat slide images into editable PowerPoint decks.
 
-Image-PPT-King is an open workflow for reconstructing image-based slides as layered, editable PPTX files. It combines Image Split visual assets, region schemas, transparent native text boxes, rendering previews, and QA reports.
+Image-PPT-King is an open workflow for reconstructing image-based slides as layered, editable PPTX files. It combines Image Split visual assets, region schemas, transparent native text boxes, an optional rendering backend, and QA reports.
 
 ## What It Produces
 
 - A `.pptx` deck with editable text boxes.
 - Selectable visual objects for rebuilt shapes, icons, photos, charts, and diagrams.
-- Rendered slide previews.
-- Layout JSON and visual/text QA reports.
+- Rendered slide previews and layout JSON when the Codex Presentations artifact backend is available.
+- Build manifests and visual/text QA reports.
 - A build manifest that records route, slide size, asset count, and text-fill policy.
 
 ## What It Does Not Promise
@@ -27,7 +27,7 @@ flowchart LR
   C --> F["Image-PPT-King builder"]
   E --> F
   F --> G["editable.pptx"]
-  F --> H["preview PNGs"]
+  F --> H["preview PNGs when artifact backend is available"]
   F --> I["QA report"]
 ```
 
@@ -41,10 +41,17 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Install the public PPTX fallback dependency:
+
+```bash
+npm install
+```
+
 Run the PPTX builder:
 
 ```bash
 node skills/image-ppt-king/scripts/build_ppt_from_layers.mjs \
+  --backend auto \
   --layers-root examples/demo/visual-layers \
   --text-json examples/demo/text-layer.json \
   --out outputs/demo/editable.pptx \
@@ -54,7 +61,9 @@ node skills/image-ppt-king/scripts/build_ppt_from_layers.mjs \
   --slide-size 960x540
 ```
 
-Current builder note: the included `build_ppt_from_layers.mjs` adapter uses the Codex Presentations artifact runtime. If it cannot discover the runtime automatically, set:
+Builder note: `--backend auto` tries the Codex Presentations artifact runtime first. That runtime can export preview PNGs and layout JSON. If it is unavailable, the script falls back to the public `pptxgenjs` backend and still writes an editable PPTX plus a build manifest. To force a backend, use `--backend artifact` or `--backend pptxgenjs`.
+
+If the artifact runtime cannot discover itself automatically, set:
 
 ```bash
 export PRESENTATIONS_ARTIFACT_UTILS=/path/to/artifact_tool_utils.mjs
@@ -77,6 +86,14 @@ skills/image-ppt-king/SKILL.md
 
 For Codex-style skill installation, copy `skills/image-ppt-king/` into your local skills directory and restart the agent.
 
+The skill folder is also self-contained for a smoke test:
+
+```bash
+cd ~/.codex/skills/image-ppt-king
+npm install
+npm run demo
+```
+
 ## Design Principle
 
 The important boundary is:
@@ -89,4 +106,4 @@ QA decides whether the reconstruction is acceptable
 
 ## Status
 
-This repository is a first open-source packaging pass over a working local workflow. Before a stable public release, the main remaining task is to add a standalone PPTX backend or document the Codex Presentations adapter as an explicit runtime dependency.
+This repository is a first open-source packaging pass over a working local workflow. The public fallback path can generate editable PPTX files with `pptxgenjs`; the Codex Presentations artifact backend remains the richer path for preview PNGs and layout JSON.

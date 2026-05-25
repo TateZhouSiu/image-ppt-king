@@ -15,7 +15,7 @@ Build a PPTX where visual components are image/shape layers and semantic text is
 - Treat charts, photos, microscopy, logos, and complex diagrams as image objects unless the user explicitly asks to redraw them.
 - Rebuild main titles, labels, card text, bullets, captions, and page numbers as editable text boxes.
 - Editable text boxes are text-only by default: no fill, no outline, no patch background.
-- Export PPTX through Presentations artifact-tool. Do not hand-edit final OOXML as the production path.
+- Prefer the Presentations artifact-tool when it is available because it can render previews and layout JSON. If it is not available, use the bundled `pptxgenjs` fallback backend to generate a reproducible editable PPTX.
 
 ## Workflow
 
@@ -35,7 +35,7 @@ Build a PPTX where visual components are image/shape layers and semantic text is
    - keep each text object independently editable; do not merge unrelated card labels, page numbers, or bullets
    - keep text boxes transparent; put missing blue labels, badges, cards, and tabs into the visual layer instead of textbox fill
 4. Run `scripts/build_ppt_from_layers.mjs` with the layer root and text JSON.
-5. Render preview PNGs and layout JSON.
+5. Render preview PNGs and layout JSON when using the Presentations artifact backend. With the `pptxgenjs` fallback backend, verify the PPTX zip, slide XML text, media relationships, and build manifest instead.
 6. Validate:
    - PPTX opens as a zip and has the expected slide count
    - each slide has text in `ppt/slides/slide*.xml`
@@ -49,6 +49,20 @@ When OCR racing was used by `image-split`, carry `ocr-merged.json` and `ocr-revi
 For final or high-risk samples, read `references/acceptance-rubric.md` and report pass/warn/fail gates. This is mandatory for v3-style position optimization or full-deck rollout.
 
 ## Builder Script
+
+After installing this skill folder by itself, install the public Node fallback dependency from the skill root:
+
+```bash
+npm install
+```
+
+Install Python QA dependencies only when running `visual_text_qa.py`:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 Use the bundled script after visual layers and text JSON exist:
 
@@ -64,6 +78,18 @@ node scripts/build_ppt_from_layers.mjs \
 ```
 
 The layer root should contain page folders with `manifest.json`; each manifest lists cropped positioned transparent PNG assets and/or documented full-canvas background-wide assets. The text JSON schema is documented in `references/text-layer-schema.md`.
+
+Run the bundled smoke demo from the skill root:
+
+```bash
+node scripts/build_ppt_from_layers.mjs \
+  --backend pptxgenjs \
+  --layers-root assets/demo/visual-layers \
+  --text-json assets/demo/text-layer.json \
+  --out outputs/demo/editable.pptx \
+  --workspace outputs/demo/workspace \
+  --slide-size 960x540
+```
 
 By default the builder strips `fill` and `line` from text objects and reports the affected objects in `build-manifest.json`. Use `--fail-on-text-fill` for strict QA. Use `--preserve-text-fill` only for legacy debugging, not for production samples.
 
@@ -129,7 +155,7 @@ Do not mix route assumptions silently. Text coordinates calibrated for one route
 - Every slide has semantic text in `ppt/slides/slide*.xml`.
 - No empty placeholder text boxes remain.
 - No missing media relationships are present.
-- The final PPTX is exported through Presentations artifact-tool, unless the user explicitly requests a different production path.
+- The final PPTX is exported through Presentations artifact-tool when that runtime is available; otherwise the bundled `pptxgenjs` backend is acceptable and must be reported in the build manifest.
 
 ### Editability Checks
 
@@ -180,8 +206,8 @@ For substantial jobs, keep artifacts organized:
 
 - `visual-layers/`: page folders from `image-split`
 - `text-layer.json`: editable text objects
-- `preview/`: rendered slide PNGs
-- `layout/`: artifact-tool layout JSON
+- `preview/`: rendered slide PNGs when using the artifact backend
+- `layout/`: artifact-tool layout JSON when using the artifact backend
 - final `.pptx`: only the deliverable in the user-facing output folder
 
 ## Stop Conditions

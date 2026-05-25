@@ -1,0 +1,50 @@
+{
+  "canvas": [960, 540],
+  "slideSize": [960, 540],
+  "background": "#F7F8F7",
+  "assets": [
+    {
+      "name": "header_rule",
+      "type": "draw",
+      "position": [0, 0, 960, 80],
+      "items": [
+        {"shape": "rect", "box": [0, 0, 960, 80], "fill": "#12324A"},
+        {"shape": "line", "points": [0, 79, 960, 79], "color": "#2CA58D", "width": 3}
+      ]
+    },
+    {
+      "name": "left_card_outline",
+      "type": "draw",
+      "position": [70, 145, 365, 275],
+      "items": [
+        {"shape": "rounded_rect", "box": [0, 0, 365, 275], "fill": "#FFFFFF", "outline": "#12324A", "width": 3, "radius": 16},
+        {"shape": "rounded_rect", "box": [24, 30, 184, 72], "fill": "#2CA58D", "radius": 12}
+      ]
+    },
+    {
+      "name": "right_card_outline",
+      "type": "draw",
+      "position": [525, 145, 365, 275],
+      "items": [
+        {"shape": "rounded_rect", "box": [0, 0, 365, 275], "fill": "#FFFFFF", "outline": "#12324A", "width": 3, "radius": 16},
+        {"shape": "rounded_rect", "box": [24, 30, 184, 72], "fill": "#F2B84B", "radius": 12}
+      ]
+    },
+    {
+      "name": "center_arrow",
+      "type": "draw",
+      "position": [438, 244, 84, 42],
+      "items": [
+        {"shape": "arrow", "from": [0, 21], "to": [84, 21], "fill": "#12324A", "width": 12, "head": 20}
+      ]
+    },
+    {
+      "name": "footer_rule",
+      "type": "draw",
+      "position": [0, 500, 960, 40],
+      "items": [
+        {"shape": "line", "points": [70, 12, 890, 12], "color": "#CDD6DD", "width": 2}
+      ]
+    }
+  ]
+}

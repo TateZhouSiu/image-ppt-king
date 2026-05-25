@@ -1,0 +1,13 @@
+{
+  "name": "image-ppt-king-skill-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Public fallback runtime dependencies for the Image-PPT-King Codex skill.",
+  "scripts": {
+    "demo": "node scripts/build_ppt_from_layers.mjs --backend pptxgenjs --layers-root assets/demo/visual-layers --text-json assets/demo/text-layer.json --out outputs/demo/editable.pptx --workspace outputs/demo/workspace --slide-size 960x540"
+  },
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  }
+}

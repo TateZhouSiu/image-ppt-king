@@ -7,5 +7,8 @@
   "scripts": {
     "help": "node skills/image-ppt-king/scripts/build_ppt_from_layers.mjs --help"
   },
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  },
   "license": "MIT"
 }

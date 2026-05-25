@@ -1,6 +1,6 @@
 {
-  "source": "examples/demo/source.png",
-  "elements": "examples/demo/elements.json",
+  "source": "assets/demo/source.png",
+  "elements": "assets/demo/elements.json",
   "route": "atomic-assets",
   "canvas": [
     960,
