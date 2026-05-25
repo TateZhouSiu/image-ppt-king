@@ -1,0 +1,11 @@
+{
+  "name": "image-ppt-king",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Convert flat slide images and Image Split layers into editable PowerPoint decks.",
+  "scripts": {
+    "help": "node skills/image-ppt-king/scripts/build_ppt_from_layers.mjs --help"
+  },
+  "license": "MIT"
+}

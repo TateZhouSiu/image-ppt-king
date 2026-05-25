@@ -1,0 +1,126 @@
+{
+  "source": "image-split/examples/demo/input.png",
+  "elements": "image-split/examples/demo/elements.json",
+  "route": "atomic-assets",
+  "canvas": [
+    960,
+    540
+  ],
+  "slideSize": [
+    960,
+    540
+  ],
+  "asset_count": 5,
+  "assets": [
+    {
+      "file": "01_header_rule.png",
+      "name": "header_rule",
+      "type": "draw",
+      "kind": "draw",
+      "placement": "crop",
+      "position": [
+        0,
+        0,
+        960,
+        80
+      ],
+      "canvas": [
+        960,
+        540
+      ],
+      "slideSize": [
+        960,
+        540
+      ],
+      "atomic": true
+    },
+    {
+      "file": "02_left_card_outline.png",
+      "name": "left_card_outline",
+      "type": "draw",
+      "kind": "draw",
+      "placement": "crop",
+      "position": [
+        70,
+        145,
+        365,
+        275
+      ],
+      "canvas": [
+        960,
+        540
+      ],
+      "slideSize": [
+        960,
+        540
+      ],
+      "atomic": true
+    },
+    {
+      "file": "03_right_card_outline.png",
+      "name": "right_card_outline",
+      "type": "draw",
+      "kind": "draw",
+      "placement": "crop",
+      "position": [
+        525,
+        145,
+        365,
+        275
+      ],
+      "canvas": [
+        960,
+        540
+      ],
+      "slideSize": [
+        960,
+        540
+      ],
+      "atomic": true
+    },
+    {
+      "file": "04_center_arrow.png",
+      "name": "center_arrow",
+      "type": "draw",
+      "kind": "draw",
+      "placement": "crop",
+      "position": [
+        438,
+        244,
+        84,
+        42
+      ],
+      "canvas": [
+        960,
+        540
+      ],
+      "slideSize": [
+        960,
+        540
+      ],
+      "atomic": true
+    },
+    {
+      "file": "05_footer_rule.png",
+      "name": "footer_rule",
+      "type": "draw",
+      "kind": "draw",
+      "placement": "crop",
+      "position": [
+        0,
+        500,
+        960,
+        40
+      ],
+      "canvas": [
+        960,
+        540
+      ],
+      "slideSize": [
+        960,
+        540
+      ],
+      "atomic": true
+    }
+  ]
+}

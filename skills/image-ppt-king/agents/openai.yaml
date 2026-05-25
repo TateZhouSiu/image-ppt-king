@@ -1,0 +1,4 @@
+interface:
+  display_name: "Image-PPT-King"
+  short_description: "Convert slide images and Image Split layers into editable PowerPoint decks."
+  default_prompt: "Convert these slide images or visual layers into a PPTX with transparent editable text anchored to reconstructed visual regions."
